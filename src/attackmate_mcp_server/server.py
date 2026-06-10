@@ -187,7 +187,9 @@ def get_command_schema(command_type: str) -> str:
 
 def run() -> None:
     if settings.mcp_transport == "sse":
-        mcp.run(transport="sse", host=settings.mcp_host, port=settings.mcp_port)
+        mcp.settings.host = settings.mcp_host
+        mcp.settings.port = settings.mcp_port
+        mcp.run(transport="sse")
     else:
         mcp.run(transport="stdio")
 

@@ -189,6 +189,10 @@ def run() -> None:
     if settings.mcp_transport == "sse":
         mcp.settings.host = settings.mcp_host
         mcp.settings.port = settings.mcp_port
+        # DNS rebinding protection is auto-enabled for localhost only;
+        # clear it when binding to an external address.
+        if settings.mcp_host not in ("127.0.0.1", "localhost", "::1"):
+            mcp.settings.transport_security = None
         mcp.run(transport="sse")
     else:
         mcp.run(transport="stdio")

@@ -13,6 +13,11 @@ class Settings(BaseSettings):
     api_password: str = Field(alias="API_PASSWORD")
     ssl_verify: bool = Field(default=False, alias="SSL_VERIFY")
     attackmate_docs_path: Optional[str] = Field(default=None, alias="ATTACKMATE_DOCS_PATH")
+    command_timeout: Optional[float] = Field(
+        default=300.0,
+        alias="COMMAND_TIMEOUT",
+        description="Seconds to wait for a command/playbook response. Set to 0 for no timeout.",
+    )
     mcp_transport: str = Field(default="stdio", alias="MCP_TRANSPORT")
     mcp_host: str = Field(default="0.0.0.0", alias="MCP_HOST")
     mcp_port: int = Field(default=8000, alias="MCP_PORT")

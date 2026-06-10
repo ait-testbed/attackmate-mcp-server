@@ -1,0 +1,12 @@
+API_BASE_URL=https://localhost:8445
+API_USERNAME=youruser
+API_PASSWORD=yourpassword
+# Set to path of attackmate/docs/source to enable documentation resources
+ATTACKMATE_DOCS_PATH=/path/to/attackmate/docs/source
+# Set to true or path to CA bundle to verify SSL; false for self-signed certs
+SSL_VERIFY=false
+# Transport: stdio (default) or sse
+MCP_TRANSPORT=stdio
+# SSE-only settings (ignored for stdio)
+MCP_HOST=0.0.0.0
+MCP_PORT=8000

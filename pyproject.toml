@@ -1,0 +1,23 @@
+[project]
+name = "attackmate-mcp-server"
+version = "0.1.0"
+description = "MCP server for LLM interaction with AttackMate"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "mcp[cli]>=1.27.2",
+    "httpx>=0.28",
+    "pydantic-settings>=2.0",
+    "attackmate @ git+https://github.com/ait-testbed/attackmate.git@development",
+]
+
+[project.scripts]
+attackmate-mcp = "attackmate_mcp_server.server:run"
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+namespaces = true
+where = ["src"]

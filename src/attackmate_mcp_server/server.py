@@ -51,7 +51,7 @@ async def execute_command(
     variable store state after execution.
     """
     client = _get_client()
-    command_dict = command.model_dump(mode="json")
+    command_dict = command.model_dump(mode="json", exclude_none=True)
     return await client.execute_command(command_dict)
 
 

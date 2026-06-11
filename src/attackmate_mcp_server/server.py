@@ -29,7 +29,7 @@ mcp = FastMCP("AttackMate", lifespan=_lifespan)
 _command_adapter = TypeAdapter(RemotelyExecutableCommand)
 _command_schema = _command_adapter.json_schema()
 
-# Pre-compute type → schema mapping so get_command_schema is a single dict lookup
+# Pre-compute type, schema mapping so get_command_schema is a single dict lookup
 _schema_by_type: dict[str, Any] = {}
 for _def in _command_schema.get("$defs", {}).values():
     _type_prop = _def.get("properties", {}).get("type", {})
@@ -206,6 +206,12 @@ def run() -> None:
         # DNS rebinding protection is auto-enabled for localhost only;
         # clear it when binding to an external address.
         if settings.mcp_host not in ("127.0.0.1", "localhost", "::1"):
+            logger.warning(
+                "MCP_HOST is set to %s (non-localhost). "
+                "DNS rebinding protection has been disabled. "
+                "Ensure this host is not reachable from untrusted networks.",
+                settings.mcp_host,
+            )
             mcp.settings.transport_security = None
         mcp.run(transport="sse")
     else:

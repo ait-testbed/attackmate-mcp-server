@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     api_username: str = Field(alias="API_USERNAME")
     api_password: str = Field(alias="API_PASSWORD")
     ssl_verify: bool = Field(default=False, alias="SSL_VERIFY")
-    attackmate_docs_path: Optional[str] = Field(default=None, alias="ATTACKMATE_DOCS_PATH")
+    attackmate_docs_path: Optional[Path] = Field(default=None, alias="ATTACKMATE_DOCS_PATH")
     command_timeout: Optional[float] = Field(
         default=300.0,
         alias="COMMAND_TIMEOUT",

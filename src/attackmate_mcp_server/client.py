@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Any
 
@@ -18,6 +19,7 @@ _API_TOKEN_HEADER = "X-Auth-Token"
 class AttackMateAPIClient:
     def __init__(self) -> None:
         self._token: str | None = None
+        self._auth_lock = asyncio.Lock()
         self._http = httpx.AsyncClient(
             base_url=settings.api_base_url,
             verify=settings.ssl_verify,
@@ -36,20 +38,31 @@ class AttackMateAPIClient:
         self._token = token
         logger.info("Authentication successful.")
 
+    async def _ensure_token(self, invalidate: str | None = None) -> None:
+        """Ensure a valid token is held, with at-most-one concurrent login.
+
+        If `invalidate` is supplied (the stale token that triggered a 401), re-login
+        only when the current token still matches, another task may already have refreshed it
+        """
+        async with self._auth_lock:
+            if invalidate is not None:
+                if self._token != invalidate:
+                    return  # another task already refreshed the token
+                self._token = None
+            if self._token is None:
+                await self._login()
+
     async def _request(
         self, method: str, path: str, timeout: float | None = httpx.USE_CLIENT_DEFAULT, **kwargs: Any
     ) -> dict[str, Any]:
         try:
-            if self._token is None:
-                await self._login()
+            await self._ensure_token()
             headers = kwargs.pop("headers", {})
             headers[_API_TOKEN_HEADER] = self._token
             resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
             if resp.status_code == 401:
-                # Token expired,  re-authenticate once and retry
                 logger.info("Token expired, re-authenticating...")
-                self._token = None
-                await self._login()
+                await self._ensure_token(invalidate=headers[_API_TOKEN_HEADER])
                 headers[_API_TOKEN_HEADER] = self._token
                 resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
             resp.raise_for_status()

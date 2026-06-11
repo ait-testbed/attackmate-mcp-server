@@ -8,5 +8,5 @@ SSL_VERIFY=false
 # Transport: stdio (default) or sse
 MCP_TRANSPORT=stdio
 # SSE-only settings (ignored for stdio)
-MCP_HOST=0.0.0.0
+MCP_HOST=127.0.0.1
 MCP_PORT=8000

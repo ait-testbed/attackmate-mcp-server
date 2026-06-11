@@ -19,7 +19,7 @@ class Settings(BaseSettings):
         description="Seconds to wait for a command/playbook response. Set to 0 for no timeout.",
     )
     mcp_transport: str = Field(default="stdio", alias="MCP_TRANSPORT")
-    mcp_host: str = Field(default="0.0.0.0", alias="MCP_HOST")
+    mcp_host: str = Field(default="127.0.0.1", alias="MCP_HOST")
     mcp_port: int = Field(default=8000, alias="MCP_PORT")
 
     model_config = SettingsConfigDict(

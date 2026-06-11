@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Optional
-from pydantic import Field
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve .env relative to this file so the server works regardless of cwd
@@ -29,4 +29,13 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings()
+try:
+    settings = Settings()
+except ValidationError as exc:
+    missing = [e["loc"][0] for e in exc.errors() if e["type"] == "missing"]
+    if missing:
+        raise RuntimeError(
+            f"Missing required configuration: {', '.join(str(f) for f in missing)}. "
+            f"Copy env-example to .env and fill in the values."
+        ) from exc
+    raise

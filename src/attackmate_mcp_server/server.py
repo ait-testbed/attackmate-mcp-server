@@ -1,5 +1,6 @@
 import json
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -13,7 +14,16 @@ from .config import settings
 
 logger = logging.getLogger(__name__)
 
-mcp = FastMCP("AttackMate")
+
+@asynccontextmanager
+async def _lifespan(server: FastMCP):
+    yield
+    if _client is not None:
+        await _client.close()
+        logger.info("AttackMate API client closed.")
+
+
+mcp = FastMCP("AttackMate", lifespan=_lifespan)
 
 # Eagerly build the schema so any generation errors surface at startup
 _command_adapter = TypeAdapter(RemotelyExecutableCommand)

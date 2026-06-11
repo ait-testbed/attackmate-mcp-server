@@ -30,26 +30,49 @@ class AttackMateAPIClient:
             data={"username": settings.api_username, "password": settings.api_password},
         )
         resp.raise_for_status()
-        self._token = resp.json()["access_token"]
+        token = resp.json().get("access_token")
+        if not token:
+            raise RuntimeError(f"Login response missing 'access_token': {resp.text[:200]}")
+        self._token = token
         logger.info("Authentication successful.")
 
     async def _request(
         self, method: str, path: str, timeout: float | None = httpx.USE_CLIENT_DEFAULT, **kwargs: Any
     ) -> dict[str, Any]:
-        if self._token is None:
-            await self._login()
-        headers = kwargs.pop("headers", {})
-        headers[_API_TOKEN_HEADER] = self._token
-        resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
-        if resp.status_code == 401:
-            # Token expired — re-authenticate once and retry
-            logger.info("Token expired, re-authenticating...")
-            self._token = None
-            await self._login()
+        try:
+            if self._token is None:
+                await self._login()
+            headers = kwargs.pop("headers", {})
             headers[_API_TOKEN_HEADER] = self._token
             resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
-        resp.raise_for_status()
-        return resp.json()  # type: ignore[return-value]
+            if resp.status_code == 401:
+                # Token expired,  re-authenticate once and retry
+                logger.info("Token expired, re-authenticating...")
+                self._token = None
+                await self._login()
+                headers[_API_TOKEN_HEADER] = self._token
+                resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
+            resp.raise_for_status()
+            return resp.json()  # type: ignore[return-value]
+        except httpx.TimeoutException as exc:
+            raise RuntimeError(
+                f"Request timed out ({timeout}s). "
+                "Raise COMMAND_TIMEOUT in .env or set to 0 to disable."
+            ) from exc
+        except httpx.ConnectError as exc:
+            raise RuntimeError(
+                f"Cannot connect to AttackMate API at {settings.api_base_url}. "
+                "Check that the server is running and API_BASE_URL is correct."
+            ) from exc
+        except httpx.HTTPStatusError as exc:
+            raise RuntimeError(
+                f"AttackMate API error {exc.response.status_code} for {method} {path}: "
+                f"{exc.response.text}"
+            ) from exc
+        except ValueError as exc:
+            raise RuntimeError(
+                f"AttackMate API returned non-JSON response for {method} {path}."
+            ) from exc
 
     async def execute_command(self, command_data: dict[str, Any]) -> dict[str, Any]:
         return await self._request("POST", "/command/execute", json=command_data, timeout=_command_timeout())

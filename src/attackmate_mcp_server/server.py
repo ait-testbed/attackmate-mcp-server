@@ -29,6 +29,14 @@ mcp = FastMCP("AttackMate", lifespan=_lifespan)
 _command_adapter = TypeAdapter(RemotelyExecutableCommand)
 _command_schema = _command_adapter.json_schema()
 
+# Pre-compute type → schema mapping so get_command_schema is a single dict lookup
+_schema_by_type: dict[str, Any] = {}
+for _def in _command_schema.get("$defs", {}).values():
+    _type_prop = _def.get("properties", {}).get("type", {})
+    _key = _type_prop.get("const") or _type_prop.get("default")
+    if _key:
+        _schema_by_type[_key] = _def
+
 # Singleton client — created on first tool call
 _client: AttackMateAPIClient | None = None
 
@@ -180,15 +188,11 @@ def get_playbook_doc(topic: str) -> str:
 @mcp.resource("attackmate://schema/{command_type}")
 def get_command_schema(command_type: str) -> str:
     """JSON schema for a specific AttackMate command type, extracted from the full union schema."""
-    defs = _command_schema.get("$defs", {})
-    for def_schema in defs.values():
-        props = def_schema.get("properties", {})
-        type_prop = props.get("type", {})
-        # Pydantic emits Literal fields as {"const": "value"} or {"default": "value"}
-        if type_prop.get("const") == command_type or type_prop.get("default") == command_type:
-            return json.dumps(def_schema, indent=2)
-    available = ", ".join(sorted(_COMMAND_DOC_FILES))
-    return f"Schema not found for '{command_type}'. Available types: {available}"
+    def_schema = _schema_by_type.get(command_type)
+    if def_schema is None:
+        available = ", ".join(sorted(_schema_by_type) or sorted(_COMMAND_DOC_FILES))
+        return f"Schema not found for '{command_type}'. Available types: {available}"
+    return json.dumps(def_schema, indent=2)
 
 
 # ---------------------------------------------------------------------------

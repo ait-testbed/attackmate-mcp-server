@@ -5,6 +5,8 @@ API_PASSWORD=yourpassword
 ATTACKMATE_DOCS_PATH=/path/to/attackmate/docs/source
 # Set to true or path to CA bundle to verify SSL; false for self-signed certs
 SSL_VERIFY=false
+# Seconds to wait for a command/playbook response
+COMMAND_TIMEOUT=300
 # Transport: stdio (default) or sse
 MCP_TRANSPORT=stdio
 # SSE-only settings (ignored for stdio)

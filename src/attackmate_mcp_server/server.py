@@ -37,7 +37,7 @@ for _def in _command_schema.get("$defs", {}).values():
     if _key:
         _schema_by_type[_key] = _def
 
-# Singleton client — created on first tool call
+# Singleton client - created on first tool call
 _client: AttackMateAPIClient | None = None
 
 
@@ -116,7 +116,7 @@ def list_command_types() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Resources — per-executor documentation (RST source)
+# Resources - per-executor documentation (RST source)
 # ---------------------------------------------------------------------------
 
 # Maps the 'type' discriminator value to the relative RST path under docs/source/

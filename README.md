@@ -21,10 +21,10 @@ cp env-example .env
 | Variable | Required | Default | Description |
 |---|---|---|---|
 | `API_BASE_URL` | | `https://localhost:8445` | AttackMate API base URL |
-| `API_USERNAME` | yes | — | API username |
-| `API_PASSWORD` | yes | — | API password |
+| `API_USERNAME` | yes | - | API username |
+| `API_PASSWORD` | yes | - | API password |
 | `SSL_VERIFY` | | `false` | `true`, `false`, or path to CA bundle |
-| `ATTACKMATE_DOCS_PATH` | | — | Path to `attackmate/docs/source` to enable documentation resources |
+| `ATTACKMATE_DOCS_PATH` | | - | Path to `attackmate/docs/source` to enable documentation resources |
 | `MCP_TRANSPORT` | | `stdio` | `stdio` or `sse` |
 | `MCP_HOST` | | `0.0.0.0` | Bind host (SSE only) |
 | `MCP_PORT` | | `8000` | Bind port (SSE only) |

@@ -200,6 +200,11 @@ def get_command_schema(command_type: str) -> str:
 # ---------------------------------------------------------------------------
 
 def run() -> None:
+    if not settings.ssl_verify:
+        logger.warning(
+            'SSL_VERIFY is disabled. TLS certificates will not be validated. '
+            'Set SSL_VERIFY=true in .env unless the AttackMate API uses a self-signed certificate.'
+        )
     if settings.mcp_transport == 'sse':
         mcp.settings.host = settings.mcp_host
         mcp.settings.port = settings.mcp_port

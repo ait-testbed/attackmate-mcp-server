@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
         alias='COMMAND_TIMEOUT',
         description='Seconds to wait for a command/playbook response. Set to 0 for no timeout.',
     )
-    mcp_transport: str = Field(default='stdio', alias='MCP_TRANSPORT')
+    mcp_transport: Literal['stdio', 'sse'] = Field(default='stdio', alias='MCP_TRANSPORT')
     mcp_host: str = Field(default='127.0.0.1', alias='MCP_HOST')
     mcp_port: int = Field(default=8000, alias='MCP_PORT')
 

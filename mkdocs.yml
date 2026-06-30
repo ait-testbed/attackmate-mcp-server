@@ -1,0 +1,32 @@
+site_name: AttackMate MCP Server
+site_description: MCP server that exposes AttackMate to LLMs
+repo_url: https://github.com/ait-testbed/attackmate-mcp-server
+repo_name: ait-testbed/attackmate-mcp-server
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    - scheme: default
+      primary: deep orange
+      accent: orange
+
+nav:
+  - Home: index.md
+  - Configuration: configuration.md
+  - Running: running.md
+  - Tools & Resources: tools.md
+  - Connecting Agents: agents.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - tables
+  - attr_list

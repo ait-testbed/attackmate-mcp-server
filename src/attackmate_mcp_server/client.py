@@ -7,13 +7,16 @@ import httpx
 from .config import settings
 
 # None → no timeout; a float → seconds
+
+
 def _command_timeout() -> float | None:
     t = settings.command_timeout
     return None if (t is None or t == 0) else t
 
+
 logger = logging.getLogger(__name__)
 
-_API_TOKEN_HEADER = "X-Auth-Token"
+_API_TOKEN_HEADER = 'X-Auth-Token'
 
 
 class AttackMateAPIClient:
@@ -26,17 +29,17 @@ class AttackMateAPIClient:
         )
 
     async def _login(self) -> None:
-        logger.info("Authenticating with AttackMate API...")
+        logger.info('Authenticating with AttackMate API...')
         resp = await self._http.post(
-            "/login",
-            data={"username": settings.api_username, "password": settings.api_password},
+            '/login',
+            data={'username': settings.api_username, 'password': settings.api_password},
         )
         resp.raise_for_status()
-        token = resp.json().get("access_token")
+        token = resp.json().get('access_token')
         if not token:
             raise RuntimeError(f"Login response missing 'access_token': {resp.text[:200]}")
         self._token = token
-        logger.info("Authentication successful.")
+        logger.info('Authentication successful.')
 
     async def _ensure_token(self, invalidate: str | None = None) -> None:
         """Ensure a valid token is held, with at-most-one concurrent login.
@@ -57,11 +60,11 @@ class AttackMateAPIClient:
     ) -> dict[str, Any]:
         try:
             await self._ensure_token()
-            headers = kwargs.pop("headers", {})
+            headers = kwargs.pop('headers', {})
             headers[_API_TOKEN_HEADER] = self._token
             resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
             if resp.status_code == 401:
-                logger.info("Token expired, re-authenticating...")
+                logger.info('Token expired, re-authenticating...')
                 await self._ensure_token(invalidate=headers[_API_TOKEN_HEADER])
                 headers[_API_TOKEN_HEADER] = self._token
                 resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
@@ -69,39 +72,39 @@ class AttackMateAPIClient:
             return resp.json()  # type: ignore[return-value]
         except httpx.TimeoutException as exc:
             raise RuntimeError(
-                f"Request timed out ({timeout}s). "
-                "Raise COMMAND_TIMEOUT in .env or set to 0 to disable."
+                f'Request timed out ({timeout}s). '
+                'Raise COMMAND_TIMEOUT in .env or set to 0 to disable.'
             ) from exc
         except httpx.ConnectError as exc:
             raise RuntimeError(
-                f"Cannot connect to AttackMate API at {settings.api_base_url}. "
-                "Check that the server is running and API_BASE_URL is correct."
+                f'Cannot connect to AttackMate API at {settings.api_base_url}. '
+                'Check that the server is running and API_BASE_URL is correct.'
             ) from exc
         except httpx.HTTPStatusError as exc:
             raise RuntimeError(
-                f"AttackMate API error {exc.response.status_code} for {method} {path}: "
-                f"{exc.response.text}"
+                f'AttackMate API error {exc.response.status_code} for {method} {path}: '
+                f'{exc.response.text}'
             ) from exc
         except ValueError as exc:
             raise RuntimeError(
-                f"AttackMate API returned non-JSON response for {method} {path}."
+                f'AttackMate API returned non-JSON response for {method} {path}.'
             ) from exc
 
     async def execute_command(self, command_data: dict[str, Any]) -> dict[str, Any]:
-        return await self._request("POST", "/command/execute", json=command_data, timeout=_command_timeout())
+        return await self._request('POST', '/command/execute', json=command_data, timeout=_command_timeout())
 
     async def run_playbook(self, playbook_yaml: str, debug: bool = False) -> dict[str, Any]:
         return await self._request(
-            "POST",
-            "/playbooks/execute/yaml",
+            'POST',
+            '/playbooks/execute/yaml',
             content=playbook_yaml,
-            params={"debug": debug},
-            headers={"Content-Type": "application/yaml"},
+            params={'debug': debug},
+            headers={'Content-Type': 'application/yaml'},
             timeout=_command_timeout(),
         )
 
     async def get_variable_store(self) -> dict[str, Any]:
-        return await self._request("GET", "/instances/state")
+        return await self._request('GET', '/instances/state')
 
     async def close(self) -> None:
         await self._http.aclose()

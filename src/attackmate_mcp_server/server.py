@@ -31,14 +31,34 @@ mcp = FastMCP('AttackMate', lifespan=_lifespan)
 _full_schema = TypeAdapter(Command).json_schema()
 
 # Pre-compute type → schema mapping so get_command_schema is a single dict lookup.
-# Sliver types are doubly-discriminated (type + cmd); keep one representative
-# schema per type rather than replicating the inner cmd union. TODO fix this in attackmate repo
+# Each $def has a 'type' const; for doubly-discriminated types (sliver, sliver-session)
+# multiple leaf classes share the same type value and the last write wins — those entries
+# are fixed up by _patch_sliver_schemas below.
 _schema_by_type: dict[str, Any] = {}
 for _def in _full_schema.get('$defs', {}).values():
     _type_prop = _def.get('properties', {}).get('type', {})
     _key = _type_prop.get('const') or _type_prop.get('default')
     if _key:
         _schema_by_type[_key] = _def
+
+
+def _patch_sliver_schemas(schema_by_type: dict[str, Any], full_schema: dict[str, Any]) -> None:
+    """Fix schema entries for doubly-discriminated sliver types.
+
+    The $defs loop above assigns one arbitrary leaf class per type for sliver and
+    sliver-session because all their subcommands share the same 'type' literal.
+    The top-level discriminator mapping holds the correct inline oneOf + cmd
+    discriminator object for these types, so we replace the bad entries with that.
+
+    Remove this function when sliver schemas upstream use a single discriminator.
+    """
+    mapping = full_schema.get('discriminator', {}).get('mapping', {})
+    for type_key, entry in mapping.items():
+        if not isinstance(entry, str):
+            schema_by_type[type_key] = entry
+
+
+_patch_sliver_schemas(_schema_by_type, _full_schema)
 
 # Singleton client - created on first tool call
 _client: AttackMateAPIClient | None = None

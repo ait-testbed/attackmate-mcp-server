@@ -5,8 +5,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from attackmate_mcp_server.server import (
-    _COMMAND_DOC_FILES,
+    _DOC_FILENAME_OVERRIDES,
     _PLAYBOOK_DOC_FILES,
+    _command_doc_path,
     _read_rst,
     _schema_by_type,
     execute_command,
@@ -61,22 +62,41 @@ class TestReadRst:
         assert 'not found' in result.lower()
 
 
+class TestCommandDocPath:
+    @pytest.mark.parametrize('cmd_type,expected', [
+        ('shell', 'playbook/commands/shell.rst'),
+        ('ssh', 'playbook/commands/ssh.rst'),
+        ('http-client', 'playbook/commands/httpclient.rst'),
+        ('msf-payload', 'playbook/commands/payload.rst'),
+        ('mktemp', 'playbook/commands/mktemp.rst'),
+    ])
+    def test_path_derivation(self, cmd_type, expected):
+        assert _command_doc_path(cmd_type) == expected
+
+    def test_overrides_cover_only_exceptions(self):
+        assert set(_DOC_FILENAME_OVERRIDES) == {'http-client', 'msf-payload'}
+
+
 class TestDocResources:
     @pytest.fixture
     def docs_tree(self, tmp_path):
-        """Populate tmp_path with RST stubs matching _COMMAND_DOC_FILES and _PLAYBOOK_DOC_FILES."""
-        for rel_path in {**_COMMAND_DOC_FILES, **_PLAYBOOK_DOC_FILES}.values():
+        """Populate tmp_path with RST stubs for all schema types and playbook topics."""
+        for cmd_type in _schema_by_type:
+            p = tmp_path / _command_doc_path(cmd_type)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(f'stub:{_command_doc_path(cmd_type)}')
+        for rel_path in _PLAYBOOK_DOC_FILES.values():
             p = tmp_path / rel_path
             p.parent.mkdir(parents=True, exist_ok=True)
             p.write_text(f'stub:{rel_path}')
         return tmp_path
 
-    @pytest.mark.parametrize('cmd_type', ['shell', 'ssh', 'debug'])
+    @pytest.mark.parametrize('cmd_type', ['shell', 'ssh', 'debug', 'msf-payload', 'mktemp'])
     def test_get_command_doc_known(self, docs_tree, cmd_type):
         with patch('attackmate_mcp_server.server.settings') as s:
             s.attackmate_docs_path = docs_tree
             result = get_command_doc(cmd_type)
-        assert result == f'stub:{_COMMAND_DOC_FILES[cmd_type]}'
+        assert result == f'stub:{_command_doc_path(cmd_type)}'
 
     def test_get_command_doc_unknown(self):
         result = get_command_doc('not-a-type')

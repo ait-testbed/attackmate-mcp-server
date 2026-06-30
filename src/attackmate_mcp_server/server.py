@@ -8,6 +8,7 @@ from mcp.server.fastmcp import FastMCP
 from pydantic import Field, TypeAdapter
 
 from attackmate.schemas.command_subtypes import RemotelyExecutableCommand
+from attackmate.schemas.command_types import Command
 
 from .client import AttackMateAPIClient
 from .config import settings
@@ -25,13 +26,15 @@ async def _lifespan(server: FastMCP):
 
 mcp = FastMCP('AttackMate', lifespan=_lifespan)
 
-# Eagerly build the schema so any generation errors surface at startup
-_command_adapter = TypeAdapter(RemotelyExecutableCommand)
-_command_schema = _command_adapter.json_schema()
+# Covers all types including 'remote' (valid in playbooks but not via execute_command).
+# Used for schema exploration tools and resources only.
+_full_schema = TypeAdapter(Command).json_schema()
 
-# Pre-compute type, schema mapping so get_command_schema is a single dict lookup
+# Pre-compute type → schema mapping so get_command_schema is a single dict lookup.
+# Sliver types are doubly-discriminated (type + cmd); keep one representative
+# schema per type rather than replicating the inner cmd union. TODO fix this in attackmate repo
 _schema_by_type: dict[str, Any] = {}
-for _def in _command_schema.get('$defs', {}).values():
+for _def in _full_schema.get('$defs', {}).values():
     _type_prop = _def.get('properties', {}).get('type', {})
     _key = _type_prop.get('const') or _type_prop.get('default')
     if _key:
@@ -111,39 +114,22 @@ def list_command_types() -> dict[str, Any]:
     The schema is a discriminated union on the 'type' field. Use it to understand
     which fields each executor type requires. Individual schemas are also accessible
     at attackmate://schema/{command_type}.
+
+    Note: the 'remote' type is only valid inside a playbook (run_playbook), not
+    as a standalone execute_command call.
     """
-    return _command_schema
+    return _full_schema
 
 
 # ---------------------------------------------------------------------------
 # Resources - per-executor documentation (RST source)
 # ---------------------------------------------------------------------------
 
-# Maps the 'type' discriminator value to the relative RST path under docs/source/
-_COMMAND_DOC_FILES: dict[str, str] = {
-    'shell': 'playbook/commands/shell.rst',
-    'ssh': 'playbook/commands/ssh.rst',
-    'sftp': 'playbook/commands/sftp.rst',
-    'msf-module': 'playbook/commands/msf-module.rst',
-    'msf-session': 'playbook/commands/msf-session.rst',
-    'msf-payload': 'playbook/commands/payload.rst',
-    'sliver-session': 'playbook/commands/sliver-session.rst',
-    'sliver': 'playbook/commands/sliver.rst',
-    'browser': 'playbook/commands/browser.rst',
-    'vnc': 'playbook/commands/vnc.rst',
-    'httpclient': 'playbook/commands/httpclient.rst',
-    'webserv': 'playbook/commands/webserv.rst',
-    'bettercap': 'playbook/commands/bettercap.rst',
-    'debug': 'playbook/commands/debug.rst',
-    'setvar': 'playbook/commands/setvar.rst',
-    'regex': 'playbook/commands/regex.rst',
-    'sleep': 'playbook/commands/sleep.rst',
-    'include': 'playbook/commands/include.rst',
-    'loop': 'playbook/commands/loop.rst',
-    'tempfile': 'playbook/commands/mktemp.rst',
-    'father': 'playbook/commands/father.rst',
-    'json': 'playbook/commands/json.rst',
-    'remote': 'playbook/commands/remote.rst',
+# Types where the RST filename differs from the type discriminator value.
+# All other types map to playbook/commands/{type}.rst by convention.
+_DOC_FILENAME_OVERRIDES: dict[str, str] = {
+    'http-client': 'httpclient',
+    'msf-payload': 'payload',
 }
 
 _PLAYBOOK_DOC_FILES: dict[str, str] = {
@@ -151,6 +137,21 @@ _PLAYBOOK_DOC_FILES: dict[str, str] = {
     'vars': 'playbook/vars.rst',
     'examples': 'playbook/examples.rst',
 }
+
+
+def _command_doc_path(command_type: str) -> str:
+    filename = _DOC_FILENAME_OVERRIDES.get(command_type, command_type)
+    return f'playbook/commands/{filename}.rst'
+
+
+# Warn at startup about any schema types whose doc file is missing on disk.
+if settings.attackmate_docs_path:
+    for _type in _schema_by_type:
+        _doc_file = Path(settings.attackmate_docs_path) / _command_doc_path(_type)
+        if not _doc_file.exists():
+            logger.warning(
+                "No documentation file for command type '%s': %s", _type, _doc_file
+            )
 
 
 def _read_rst(relative_path: str) -> str:
@@ -168,11 +169,10 @@ def _read_rst(relative_path: str) -> str:
 @mcp.resource('attackmate://docs/commands/{command_type}')
 def get_command_doc(command_type: str) -> str:
     """RST documentation for an AttackMate executor type (fields, examples, notes)."""
-    rel_path = _COMMAND_DOC_FILES.get(command_type)
-    if rel_path is None:
-        available = ', '.join(sorted(_COMMAND_DOC_FILES))
+    if command_type not in _schema_by_type:
+        available = ', '.join(sorted(_schema_by_type))
         return f"Unknown command type '{command_type}'. Available: {available}"
-    return _read_rst(rel_path)
+    return _read_rst(_command_doc_path(command_type))
 
 
 @mcp.resource('attackmate://docs/playbook/{topic}')
@@ -190,7 +190,7 @@ def get_command_schema(command_type: str) -> str:
     """JSON schema for a specific AttackMate command type, extracted from the full union schema."""
     def_schema = _schema_by_type.get(command_type)
     if def_schema is None:
-        available = ', '.join(sorted(_schema_by_type) or sorted(_COMMAND_DOC_FILES))
+        available = ', '.join(sorted(_schema_by_type))
         return f"Schema not found for '{command_type}'. Available types: {available}"
     return json.dumps(def_schema, indent=2)
 

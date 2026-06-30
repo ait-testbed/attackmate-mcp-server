@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+import pytest_asyncio
 from pydantic_settings import SettingsConfigDict
 
 from attackmate_mcp_server.client import AttackMateAPIClient
@@ -51,7 +52,7 @@ def client():
     return AttackMateAPIClient()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_http(client):
     """Replace the internal httpx transport with async mocks, closing the real client on teardown."""
     real_http = client._http
@@ -64,8 +65,8 @@ async def mock_http(client):
     await real_http.aclose()
 
 
-@pytest.fixture
-def authed_client(client, mock_http):
+@pytest_asyncio.fixture
+async def authed_client(client, mock_http):
     """Client with a pre-set token and fully mocked HTTP transport."""
     client._token = 'valid-token'
     return client, mock_http

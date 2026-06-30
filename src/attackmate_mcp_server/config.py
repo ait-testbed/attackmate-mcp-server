@@ -16,7 +16,12 @@ class Settings(BaseSettings):
     command_timeout: Optional[float] = Field(
         default=300.0,
         alias='COMMAND_TIMEOUT',
-        description='Seconds to wait for a command/playbook response. Set to 0 for no timeout.',
+        description='Seconds to wait for a single execute_command call. Set to 0 for no timeout.',
+    )
+    playbook_timeout: Optional[float] = Field(
+        default=1800.0,
+        alias='PLAYBOOK_TIMEOUT',
+        description='Seconds to wait for a run_playbook call. Set to 0 for no timeout.',
     )
     mcp_transport: Literal['stdio', 'sse'] = Field(default='stdio', alias='MCP_TRANSPORT')
     mcp_host: str = Field(default='127.0.0.1', alias='MCP_HOST')

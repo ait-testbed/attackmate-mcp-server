@@ -9,9 +9,8 @@ from .config import settings
 # None → no timeout; a float → seconds
 
 
-def _command_timeout() -> float | None:
-    t = settings.command_timeout
-    return None if (t is None or t == 0) else t
+def _to_timeout(value: float | None) -> float | None:
+    return None if (value is None or value == 0) else value
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +72,7 @@ class AttackMateAPIClient:
         except httpx.TimeoutException as exc:
             raise RuntimeError(
                 f'Request timed out ({timeout}s). '
-                'Raise COMMAND_TIMEOUT in .env or set to 0 to disable.'
+                'Raise COMMAND_TIMEOUT or PLAYBOOK_TIMEOUT in .env, or set to 0 to disable.'
             ) from exc
         except httpx.ConnectError as exc:
             raise RuntimeError(
@@ -91,7 +90,10 @@ class AttackMateAPIClient:
             ) from exc
 
     async def execute_command(self, command_data: dict[str, Any]) -> dict[str, Any]:
-        return await self._request('POST', '/command/execute', json=command_data, timeout=_command_timeout())
+        return await self._request(
+            'POST', '/command/execute', json=command_data,
+            timeout=_to_timeout(settings.command_timeout),
+        )
 
     async def run_playbook(self, playbook_yaml: str, debug: bool = False) -> dict[str, Any]:
         return await self._request(
@@ -100,7 +102,7 @@ class AttackMateAPIClient:
             content=playbook_yaml,
             params={'debug': debug},
             headers={'Content-Type': 'application/yaml'},
-            timeout=_command_timeout(),
+            timeout=_to_timeout(settings.playbook_timeout),
         )
 
     async def get_variable_store(self) -> dict[str, Any]:

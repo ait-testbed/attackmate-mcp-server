@@ -1,10 +1,8 @@
-"""Tests for config.py - Settings loading and _command_timeout helper."""
-from unittest.mock import patch
-
+"""Tests for config.py - Settings loading and _to_timeout helper."""
 import pytest
 from pydantic import ValidationError
 
-from attackmate_mcp_server.client import _command_timeout
+from attackmate_mcp_server.client import _to_timeout
 from tests.conftest import IsolatedSettings, make_settings
 
 
@@ -14,6 +12,7 @@ class TestSettingsDefaults:
         assert s.api_base_url == 'https://localhost:8445'
         assert s.ssl_verify is False
         assert s.command_timeout == 300.0
+        assert s.playbook_timeout == 1800.0
         assert s.mcp_transport == 'stdio'
         assert s.mcp_host == '127.0.0.1'
         assert s.mcp_port == 8000
@@ -26,6 +25,10 @@ class TestSettingsDefaults:
     def test_command_timeout_zero(self, monkeypatch):
         s = make_settings(monkeypatch, COMMAND_TIMEOUT='0')
         assert s.command_timeout == 0.0
+
+    def test_playbook_timeout_override(self, monkeypatch):
+        s = make_settings(monkeypatch, PLAYBOOK_TIMEOUT='3600')
+        assert s.playbook_timeout == 3600.0
 
     def test_docs_path_parsed(self, monkeypatch, tmp_path):
         s = make_settings(monkeypatch, ATTACKMATE_DOCS_PATH=str(tmp_path))
@@ -53,15 +56,13 @@ class TestSettingsDefaults:
         assert any(f in message for f in ('API_USERNAME', 'API_PASSWORD'))
 
 
-class TestCommandTimeoutHelper:
-    @pytest.mark.parametrize('timeout,expected', [
+class TestToTimeoutHelper:
+    @pytest.mark.parametrize('value,expected', [
         (None, None),
         (0, None),
         (0.0, None),
         (300.0, 300.0),
         (60.0, 60.0),
     ])
-    def test_values(self, timeout, expected):
-        with patch('attackmate_mcp_server.client.settings') as s:
-            s.command_timeout = timeout
-            assert _command_timeout() == expected
+    def test_values(self, value, expected):
+        assert _to_timeout(value) == expected

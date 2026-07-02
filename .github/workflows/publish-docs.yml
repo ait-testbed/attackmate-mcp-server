@@ -29,13 +29,13 @@ jobs:
           python-version: "3.13"
 
       - name: Install dependencies
-        run: uv sync --extra docs
+        run: uv sync && uv pip install mkdocs-material
 
       - name: Build docs
         run: uv run mkdocs build --strict
 
       - name: Upload pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v3  # bump to v4 when Node 24 version is released
         with:
           path: site/
 
@@ -48,4 +48,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4  # bump to v5 when Node 24 version is released

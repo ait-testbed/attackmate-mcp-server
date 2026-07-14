@@ -25,8 +25,10 @@ cp env-example .env
 | `API_PASSWORD` | yes | - | API password |
 | `SSL_VERIFY` | | `false` | `true`, `false`, or path to CA bundle |
 | `ATTACKMATE_DOCS_PATH` | | - | Path to `attackmate/docs/source` to enable documentation resources |
+| `COMMAND_TIMEOUT` | | `300` | Seconds to wait for a single `execute_command` call (`0` = no timeout) |
+| `PLAYBOOK_TIMEOUT` | | `1800` | Seconds to wait for a `run_playbook` call (`0` = no timeout) |
 | `MCP_TRANSPORT` | | `stdio` | `stdio` or `sse` |
-| `MCP_HOST` | | `0.0.0.0` | Bind host (SSE only) |
+| `MCP_HOST` | | `127.0.0.1` | Bind host (SSE only) |
 | `MCP_PORT` | | `8000` | Bind port (SSE only) |
 
 ## Running
@@ -47,3 +49,7 @@ For SSE, set `MCP_TRANSPORT=sse` (and optionally `MCP_HOST`/`MCP_PORT`) in `.env
 | `list_command_types` | Return the full JSON schema for all command types |
 
 Documentation resources (`attackmate://docs/commands/{type}`, `attackmate://docs/playbook/{topic}`, `attackmate://schema/{type}`) are available when `ATTACKMATE_DOCS_PATH` is set.
+
+## License
+
+[EUPL-1.2](LICENSE.md)

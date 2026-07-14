@@ -3,6 +3,7 @@ name = "attackmate-mcp-server"
 version = "0.1.0"
 description = "MCP server for LLM interaction with AttackMate"
 readme = "README.md"
+license = {text = "EUPL-1.2"}
 requires-python = ">=3.13"
 dependencies = [
     "mcp[cli]>=1.27.2",

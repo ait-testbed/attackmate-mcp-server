@@ -1,5 +1,6 @@
 import json
 import logging
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated, Any
@@ -17,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def _lifespan(server: FastMCP):
+async def _lifespan(server: FastMCP) -> AsyncIterator[None]:
     yield
     if _client is not None:
         await _client.close()
@@ -75,16 +76,19 @@ def _get_client() -> AttackMateAPIClient:
 # Tools
 # ---------------------------------------------------------------------------
 
+
 @mcp.tool()
 async def execute_command(
     command: Annotated[
         RemotelyExecutableCommand,
-        Field(description=(
-            "The AttackMate command to execute. Set 'type' to select the executor "
-            "(e.g. 'shell', 'ssh', 'msf-module'). "
-            'Fetch attackmate://docs/commands/{type} for per-executor field details.'
-        )),
-    ]
+        Field(
+            description=(
+                "The AttackMate command to execute. Set 'type' to select the executor "
+                "(e.g. 'shell', 'ssh', 'msf-module'). "
+                'Fetch attackmate://docs/commands/{type} for per-executor field details.'
+            )
+        ),
+    ],
 ) -> dict[str, Any]:
     """Execute a single AttackMate command on the persistent instance.
 
@@ -98,15 +102,25 @@ async def execute_command(
 
 @mcp.tool()
 async def run_playbook(
-    playbook_yaml: Annotated[str, Field(description=(
-        'Full YAML content of the AttackMate playbook. '
-        'Fetch attackmate://docs/playbook/structure for the playbook format. '
-        'Fetch attackmate://docs/playbook/examples for ready-made examples.'
-    ))],
-    debug: Annotated[bool, Field(description=(
-        'Enable DEBUG log level for this execution. '
-        'When true, attackmate_log in the response contains verbose framework output.'
-    ))] = False,
+    playbook_yaml: Annotated[
+        str,
+        Field(
+            description=(
+                'Full YAML content of the AttackMate playbook. '
+                'Fetch attackmate://docs/playbook/structure for the playbook format. '
+                'Fetch attackmate://docs/playbook/examples for ready-made examples.'
+            )
+        ),
+    ],
+    debug: Annotated[
+        bool,
+        Field(
+            description=(
+                'Enable DEBUG log level for this execution. '
+                'When true, attackmate_log in the response contains verbose framework output.'
+            )
+        ),
+    ] = False,
 ) -> dict[str, Any]:
     """Execute an AttackMate playbook from YAML content using a transient instance.
 
@@ -169,16 +183,13 @@ if settings.attackmate_docs_path:
     for _type in _schema_by_type:
         _doc_file = Path(settings.attackmate_docs_path) / _command_doc_path(_type)
         if not _doc_file.exists():
-            logger.warning(
-                "No documentation file for command type '%s': %s", _type, _doc_file
-            )
+            logger.warning("No documentation file for command type '%s': %s", _type, _doc_file)
 
 
 def _read_rst(relative_path: str) -> str:
     if not settings.attackmate_docs_path:
         return (
-            'ATTACKMATE_DOCS_PATH is not configured. '
-            'Set it in .env to the attackmate/docs/source directory.'
+            'ATTACKMATE_DOCS_PATH is not configured. Set it in .env to the attackmate/docs/source directory.'
         )
     path = Path(settings.attackmate_docs_path) / relative_path
     if not path.exists():
@@ -218,6 +229,7 @@ def get_command_schema(command_type: str) -> str:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+
 
 def run() -> None:
     if not settings.ssl_verify:

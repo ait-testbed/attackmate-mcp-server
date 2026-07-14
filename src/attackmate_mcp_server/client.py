@@ -3,6 +3,7 @@ import logging
 from typing import Any
 
 import httpx
+from httpx._client import UseClientDefault
 
 from .config import settings
 
@@ -55,7 +56,11 @@ class AttackMateAPIClient:
                 await self._login()
 
     async def _request(
-        self, method: str, path: str, timeout: float | None = httpx.USE_CLIENT_DEFAULT, **kwargs: Any
+        self,
+        method: str,
+        path: str,
+        timeout: float | None | UseClientDefault = httpx.USE_CLIENT_DEFAULT,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         try:
             await self._ensure_token()
@@ -68,7 +73,7 @@ class AttackMateAPIClient:
                 headers[_API_TOKEN_HEADER] = self._token
                 resp = await self._http.request(method, path, headers=headers, timeout=timeout, **kwargs)
             resp.raise_for_status()
-            return resp.json()  # type: ignore[return-value]
+            return resp.json()
         except httpx.TimeoutException as exc:
             raise RuntimeError(
                 f'Request timed out ({timeout}s). '
@@ -81,17 +86,16 @@ class AttackMateAPIClient:
             ) from exc
         except httpx.HTTPStatusError as exc:
             raise RuntimeError(
-                f'AttackMate API error {exc.response.status_code} for {method} {path}: '
-                f'{exc.response.text}'
+                f'AttackMate API error {exc.response.status_code} for {method} {path}: {exc.response.text}'
             ) from exc
         except ValueError as exc:
-            raise RuntimeError(
-                f'AttackMate API returned non-JSON response for {method} {path}.'
-            ) from exc
+            raise RuntimeError(f'AttackMate API returned non-JSON response for {method} {path}.') from exc
 
     async def execute_command(self, command_data: dict[str, Any]) -> dict[str, Any]:
         return await self._request(
-            'POST', '/command/execute', json=command_data,
+            'POST',
+            '/command/execute',
+            json=command_data,
             timeout=_to_timeout(settings.command_timeout),
         )
 

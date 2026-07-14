@@ -1,4 +1,5 @@
 """Tests for server.py - schema helpers, resource handlers, and MCP tools."""
+
 import json
 from unittest.mock import MagicMock, patch
 
@@ -63,13 +64,16 @@ class TestReadRst:
 
 
 class TestCommandDocPath:
-    @pytest.mark.parametrize('cmd_type,expected', [
-        ('shell', 'playbook/commands/shell.rst'),
-        ('ssh', 'playbook/commands/ssh.rst'),
-        ('http-client', 'playbook/commands/httpclient.rst'),
-        ('msf-payload', 'playbook/commands/payload.rst'),
-        ('mktemp', 'playbook/commands/mktemp.rst'),
-    ])
+    @pytest.mark.parametrize(
+        'cmd_type,expected',
+        [
+            ('shell', 'playbook/commands/shell.rst'),
+            ('ssh', 'playbook/commands/ssh.rst'),
+            ('http-client', 'playbook/commands/httpclient.rst'),
+            ('msf-payload', 'playbook/commands/payload.rst'),
+            ('mktemp', 'playbook/commands/mktemp.rst'),
+        ],
+    )
     def test_path_derivation(self, cmd_type, expected):
         assert _command_doc_path(cmd_type) == expected
 

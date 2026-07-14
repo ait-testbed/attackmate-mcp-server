@@ -1,4 +1,5 @@
 """Tests for client.py - AttackMateAPIClient."""
+
 from unittest.mock import MagicMock
 
 import httpx
@@ -74,10 +75,13 @@ class TestRequest:
         second_call_headers = mock_http.request.call_args_list[1].kwargs['headers']
         assert second_call_headers['X-Auth-Token'] == 'new-token'
 
-    @pytest.mark.parametrize('exc_type,match', [
-        (httpx.TimeoutException, 'COMMAND_TIMEOUT'),
-        (httpx.ConnectError, 'API_BASE_URL'),
-    ])
+    @pytest.mark.parametrize(
+        'exc_type,match',
+        [
+            (httpx.TimeoutException, 'COMMAND_TIMEOUT'),
+            (httpx.ConnectError, 'API_BASE_URL'),
+        ],
+    )
     async def test_network_errors_become_runtime_error(self, authed_client, exc_type, match):
         client, mock_http = authed_client
         mock_http.request.side_effect = exc_type('simulated')

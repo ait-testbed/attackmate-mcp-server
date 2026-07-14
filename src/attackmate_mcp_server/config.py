@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal, Optional
+
 from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -40,7 +41,7 @@ except ValidationError as exc:
     missing = [e['loc'][0] for e in exc.errors() if e['type'] == 'missing']
     if missing:
         raise RuntimeError(
-            f"Missing required configuration: {', '.join(str(f) for f in missing)}. "
+            f'Missing required configuration: {", ".join(str(f) for f in missing)}. '
             f'Copy env-example to .env and fill in the values.'
         ) from exc
     raise

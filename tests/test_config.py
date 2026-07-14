@@ -1,4 +1,5 @@
 """Tests for config.py - Settings loading and _to_timeout helper."""
+
 import pytest
 from pydantic import ValidationError
 
@@ -52,17 +53,20 @@ class TestSettingsDefaults:
             IsolatedSettings()
         missing = [str(e['loc'][0]) for e in exc_info.value.errors() if e['type'] == 'missing']
         assert missing, "Expected 'missing'-type errors, wrapper filter would silently skip them"
-        message = f"Missing required configuration: {', '.join(missing)}"
+        message = f'Missing required configuration: {", ".join(missing)}'
         assert any(f in message for f in ('API_USERNAME', 'API_PASSWORD'))
 
 
 class TestToTimeoutHelper:
-    @pytest.mark.parametrize('value,expected', [
-        (None, None),
-        (0, None),
-        (0.0, None),
-        (300.0, 300.0),
-        (60.0, 60.0),
-    ])
+    @pytest.mark.parametrize(
+        'value,expected',
+        [
+            (None, None),
+            (0, None),
+            (0.0, None),
+            (300.0, 300.0),
+            (60.0, 60.0),
+        ],
+    )
     def test_values(self, value, expected):
         assert _to_timeout(value) == expected

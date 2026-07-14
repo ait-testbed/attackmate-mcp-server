@@ -1,4 +1,5 @@
 """Shared fixtures and helpers for all test modules."""
+
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -35,9 +36,7 @@ def make_response(status_code: int = 200, json_data=None, text: str = '') -> Mag
     resp.json.return_value = json_data if json_data is not None else {'ok': True}
     resp.text = text
     if status_code >= 400:
-        resp.raise_for_status.side_effect = httpx.HTTPStatusError(
-            'error', request=MagicMock(), response=resp
-        )
+        resp.raise_for_status.side_effect = httpx.HTTPStatusError('error', request=MagicMock(), response=resp)
     else:
         resp.raise_for_status.return_value = None
     return resp
@@ -46,6 +45,7 @@ def make_response(status_code: int = 200, json_data=None, text: str = '') -> Mag
 # ---------------------------------------------------------------------------
 # Client fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def client():
@@ -75,6 +75,7 @@ async def authed_client(client, mock_http):
 # ---------------------------------------------------------------------------
 # Server fixtures
 # ---------------------------------------------------------------------------
+
 
 @pytest.fixture
 def mock_api_client(monkeypatch):

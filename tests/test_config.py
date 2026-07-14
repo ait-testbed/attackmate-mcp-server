@@ -4,6 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from attackmate_mcp_server.client import _to_timeout
+from attackmate_mcp_server.config import _load_settings
 from tests.conftest import IsolatedSettings, make_settings
 
 
@@ -45,16 +46,23 @@ class TestSettingsDefaults:
         with pytest.raises(ValidationError):
             IsolatedSettings()
 
-    def test_missing_fields_error_has_wrapper_compatible_structure(self, monkeypatch):
-        """The ValidationError structure matches what the module-level RuntimeError wrapper expects."""
+    def test_missing_required_field_becomes_runtime_error(self, monkeypatch):
+        """_load_settings wraps a missing-field ValidationError into an actionable RuntimeError."""
         monkeypatch.delenv('API_USERNAME', raising=False)
         monkeypatch.delenv('API_PASSWORD', raising=False)
-        with pytest.raises(ValidationError) as exc_info:
-            IsolatedSettings()
-        missing = [str(e['loc'][0]) for e in exc_info.value.errors() if e['type'] == 'missing']
-        assert missing, "Expected 'missing'-type errors, wrapper filter would silently skip them"
-        message = f'Missing required configuration: {", ".join(missing)}'
-        assert any(f in message for f in ('API_USERNAME', 'API_PASSWORD'))
+        with pytest.raises(RuntimeError, match='Missing required configuration') as exc_info:
+            _load_settings(IsolatedSettings)
+        assert 'API_USERNAME' in str(exc_info.value)
+        assert 'API_PASSWORD' in str(exc_info.value)
+        assert isinstance(exc_info.value.__cause__, ValidationError)
+
+    def test_non_missing_validation_error_propagates_unwrapped(self, monkeypatch):
+        """A ValidationError unrelated to missing fields (e.g. a bad literal) must not be masked."""
+        monkeypatch.setenv('API_USERNAME', 'user')
+        monkeypatch.setenv('API_PASSWORD', 'pass')
+        monkeypatch.setenv('MCP_TRANSPORT', 'not-a-real-transport')
+        with pytest.raises(ValidationError):
+            _load_settings(IsolatedSettings)
 
 
 class TestToTimeoutHelper:

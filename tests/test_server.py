@@ -1,22 +1,29 @@
 """Tests for server.py - schema helpers, resource handlers, and MCP tools."""
 
 import json
-from unittest.mock import MagicMock, patch
+import logging
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from mcp.server.transport_security import TransportSecuritySettings
 
 from attackmate_mcp_server.server import (
     _DOC_FILENAME_OVERRIDES,
     _PLAYBOOK_DOC_FILES,
     _command_doc_path,
+    _get_client,
+    _lifespan,
     _read_rst,
     _schema_by_type,
+    _warn_missing_docs,
     execute_command,
     get_command_doc,
     get_command_schema,
     get_playbook_doc,
     get_variable_store,
     list_command_types,
+    mcp,
+    run,
     run_playbook,
 )
 
@@ -138,3 +145,111 @@ class TestTools:
         result = await get_variable_store()
         mock_api_client.get_variable_store.assert_awaited_once()
         assert result == {'vars': {}}
+
+
+class TestGetClient:
+    def test_creates_client_once_and_reuses(self, monkeypatch):
+        monkeypatch.setattr('attackmate_mcp_server.server._client', None)
+        with patch('attackmate_mcp_server.server.AttackMateAPIClient') as mock_cls:
+            first = _get_client()
+            second = _get_client()
+        mock_cls.assert_called_once()
+        assert first is second
+
+    def test_reuses_already_created_client(self, monkeypatch):
+        existing = MagicMock()
+        monkeypatch.setattr('attackmate_mcp_server.server._client', existing)
+        with patch('attackmate_mcp_server.server.AttackMateAPIClient') as mock_cls:
+            result = _get_client()
+        mock_cls.assert_not_called()
+        assert result is existing
+
+
+class TestLifespan:
+    async def test_no_client_created_skips_close(self, monkeypatch):
+        monkeypatch.setattr('attackmate_mcp_server.server._client', None)
+        async with _lifespan(mcp):
+            pass
+
+    async def test_existing_client_is_closed_on_exit(self, monkeypatch):
+        mock_client = AsyncMock()
+        monkeypatch.setattr('attackmate_mcp_server.server._client', mock_client)
+        async with _lifespan(mcp):
+            pass
+        mock_client.close.assert_awaited_once()
+
+
+class TestWarnMissingDocs:
+    def test_no_docs_path_configured_skips(self, caplog):
+        with patch('attackmate_mcp_server.server.settings') as s:
+            s.attackmate_docs_path = None
+            with caplog.at_level(logging.WARNING):
+                _warn_missing_docs()
+        assert caplog.text == ''
+
+    def test_logs_warning_for_missing_doc(self, tmp_path, caplog):
+        with patch('attackmate_mcp_server.server.settings') as s:
+            s.attackmate_docs_path = tmp_path
+            with caplog.at_level(logging.WARNING):
+                _warn_missing_docs()
+        assert 'No documentation file' in caplog.text
+
+
+class TestRun:
+    @pytest.fixture(autouse=True)
+    def clean_mcp_settings(self, monkeypatch):
+        """Reset mcp.settings around each test - run() mutates it directly, not via settings."""
+        monkeypatch.setattr(mcp.settings, 'host', '127.0.0.1')
+        monkeypatch.setattr(mcp.settings, 'port', 8000)
+        monkeypatch.setattr(mcp.settings, 'transport_security', TransportSecuritySettings())
+
+    def test_ssl_verify_disabled_logs_warning(self, caplog):
+        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run'):
+            s.ssl_verify = False
+            s.mcp_transport = 'stdio'
+            with caplog.at_level(logging.WARNING):
+                run()
+        assert 'SSL_VERIFY is disabled' in caplog.text
+
+    def test_ssl_verify_enabled_no_warning(self, caplog):
+        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run'):
+            s.ssl_verify = True
+            s.mcp_transport = 'stdio'
+            with caplog.at_level(logging.WARNING):
+                run()
+        assert 'SSL_VERIFY is disabled' not in caplog.text
+
+    def test_stdio_transport_runs_stdio(self):
+        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
+            s.ssl_verify = True
+            s.mcp_transport = 'stdio'
+            run()
+        mock_run.assert_called_once_with(transport='stdio')
+
+    def test_sse_localhost_keeps_dns_protection(self, caplog):
+        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
+            s.ssl_verify = True
+            s.mcp_transport = 'sse'
+            s.mcp_host = '127.0.0.1'
+            s.mcp_port = 9000
+            with caplog.at_level(logging.WARNING):
+                run()
+        assert mcp.settings.host == '127.0.0.1'
+        assert mcp.settings.port == 9000
+        assert mcp.settings.transport_security is not None
+        assert mcp.settings.transport_security.enable_dns_rebinding_protection is True
+        assert 'DNS rebinding' not in caplog.text
+        mock_run.assert_called_once_with(transport='sse')
+
+    def test_sse_non_localhost_disables_dns_protection(self, caplog):
+        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
+            s.ssl_verify = True
+            s.mcp_transport = 'sse'
+            s.mcp_host = '0.0.0.0'
+            s.mcp_port = 8000
+            with caplog.at_level(logging.WARNING):
+                run()
+        assert mcp.settings.transport_security is None
+        assert 'DNS rebinding' in caplog.text
+        assert '0.0.0.0' in caplog.text
+        mock_run.assert_called_once_with(transport='sse')

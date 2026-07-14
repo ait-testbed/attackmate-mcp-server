@@ -35,13 +35,17 @@ class Settings(BaseSettings):
     )
 
 
-try:
-    settings = Settings()
-except ValidationError as exc:
-    missing = [e['loc'][0] for e in exc.errors() if e['type'] == 'missing']
-    if missing:
-        raise RuntimeError(
-            f'Missing required configuration: {", ".join(str(f) for f in missing)}. '
-            f'Copy env-example to .env and fill in the values.'
-        ) from exc
-    raise
+def _load_settings(settings_cls: type[Settings] = Settings) -> Settings:
+    try:
+        return settings_cls()
+    except ValidationError as exc:
+        missing = [e['loc'][0] for e in exc.errors() if e['type'] == 'missing']
+        if missing:
+            raise RuntimeError(
+                f'Missing required configuration: {", ".join(str(f) for f in missing)}. '
+                f'Copy env-example to .env and fill in the values.'
+            ) from exc
+        raise
+
+
+settings = _load_settings()

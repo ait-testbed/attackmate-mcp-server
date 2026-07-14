@@ -51,6 +51,7 @@ quote-style = "single"
 
 [tool.mypy]
 python_version = "3.13"
+mypy_path = "src"
 plugins = ["pydantic.mypy"]
 warn_unused_configs = true
 warn_redundant_casts = true

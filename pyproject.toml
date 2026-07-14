@@ -17,8 +17,14 @@ attackmate-mcp = "attackmate_mcp_server.server:run"
 
 [dependency-groups]
 dev = [
+    "mypy==2.3.0",
     "pytest>=8",
     "pytest-asyncio>=1.0",
+    "ruff==0.15.7",
+    "types-paramiko>=5.0.0.20260617",
+    "types-pyyaml>=6.0.12.20260518",
+    "types-requests>=2.33.0.20260712",
+    "types-tabulate>=0.10.0.20260508",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +35,36 @@ docs = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["attackmate"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = "attackmate.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
 
 [build-system]
 requires = ["setuptools>=61.0.0", "wheel"]

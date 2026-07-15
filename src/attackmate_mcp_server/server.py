@@ -178,12 +178,17 @@ def _command_doc_path(command_type: str) -> str:
     return f'playbook/commands/{filename}.rst'
 
 
-# Warn at startup about any schema types whose doc file is missing on disk.
-if settings.attackmate_docs_path:
+def _warn_missing_docs() -> None:
+    """Warn at startup about any schema types whose doc file is missing on disk."""
+    if not settings.attackmate_docs_path:
+        return
     for _type in _schema_by_type:
         _doc_file = Path(settings.attackmate_docs_path) / _command_doc_path(_type)
         if not _doc_file.exists():
             logger.warning("No documentation file for command type '%s': %s", _type, _doc_file)
+
+
+_warn_missing_docs()
 
 
 def _read_rst(relative_path: str) -> str:

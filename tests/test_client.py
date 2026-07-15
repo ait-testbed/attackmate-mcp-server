@@ -1,6 +1,6 @@
 """Tests for client.py - AttackMateAPIClient."""
 
-from unittest.mock import MagicMock
+import asyncio
 
 import httpx
 import pytest
@@ -50,6 +50,28 @@ class TestEnsureToken:
         mock_http.post.assert_not_called()
         assert client._token == 'already-refreshed'
 
+    async def test_concurrent_calls_login_only_once(self, client, mock_http):
+        """Two tasks racing _ensure_token() with no token held must trigger a single _login().
+
+        The mocked login yields control mid-flight (asyncio.sleep) so the second task gets a
+        chance to run while the first is still logging in - without the asyncio.Lock, it would
+        also see self._token as None and call _login() itself.
+        """
+        login_calls = 0
+
+        async def slow_login(*args, **kwargs):
+            nonlocal login_calls
+            login_calls += 1
+            await asyncio.sleep(0.01)
+            return make_response(json_data={'access_token': 'shared-token'})
+
+        mock_http.post.side_effect = slow_login
+
+        await asyncio.gather(client._ensure_token(), client._ensure_token())
+
+        assert login_calls == 1
+        assert client._token == 'shared-token'
+
 
 class TestRequest:
     async def test_success_returns_json(self, authed_client):
@@ -61,8 +83,7 @@ class TestRequest:
     async def test_401_triggers_reauth_and_retries(self, authed_client):
         client, mock_http = authed_client
         mock_http.post.return_value = make_response(json_data={'access_token': 'new-token'})
-        resp_401 = MagicMock(spec=httpx.Response)
-        resp_401.status_code = 401
+        resp_401 = make_response(status_code=401)
         resp_ok = make_response(json_data={'retried': True})
         mock_http.request.side_effect = [resp_401, resp_ok]
 
@@ -87,6 +108,20 @@ class TestRequest:
         mock_http.request.side_effect = exc_type('simulated')
         with pytest.raises(RuntimeError, match=match):
             await client._request('GET', '/test')
+
+    async def test_persistent_401_after_retry_raises_runtime_error(self, authed_client):
+        """A second 401 (post-reauth) must surface as a RuntimeError, not retry again or succeed."""
+        client, mock_http = authed_client
+        mock_http.post.return_value = make_response(json_data={'access_token': 'new-token'})
+        resp_401_first = make_response(status_code=401, text='unauthorized')
+        resp_401_second = make_response(status_code=401, text='still unauthorized')
+        mock_http.request.side_effect = [resp_401_first, resp_401_second]
+
+        with pytest.raises(RuntimeError, match='401'):
+            await client._request('GET', '/test')
+
+        assert mock_http.request.await_count == 2
+        mock_http.post.assert_awaited_once()
 
     async def test_http_status_error_includes_status_code(self, authed_client):
         client, mock_http = authed_client

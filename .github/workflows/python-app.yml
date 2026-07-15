@@ -42,4 +42,7 @@ jobs:
       run: uv sync
 
     - name: Test with pytest
+      env:
+        API_USERNAME: ci-dummy-user
+        API_PASSWORD: ci-dummy-password
       run: uv run pytest

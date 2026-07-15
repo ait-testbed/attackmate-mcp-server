@@ -54,12 +54,9 @@ def client():
 
 @pytest_asyncio.fixture
 async def mock_http(client):
-    """Replace the internal httpx transport with async mocks, closing the real client on teardown."""
+    """Replace the internal httpx transport with a spec'd async mock, closing the real client on teardown."""
     real_http = client._http
-    mock = MagicMock()
-    mock.post = AsyncMock()
-    mock.request = AsyncMock()
-    mock.aclose = AsyncMock()
+    mock = MagicMock(spec=httpx.AsyncClient)
     client._http = mock
     yield mock
     await real_http.aclose()
@@ -79,8 +76,8 @@ async def authed_client(client, mock_http):
 
 @pytest.fixture
 def mock_api_client(monkeypatch):
-    """Patch _get_client() to return an AsyncMock with canned return values."""
-    mock = AsyncMock()
+    """Patch _get_client() to return a spec'd AsyncMock with canned return values."""
+    mock = AsyncMock(spec=AttackMateAPIClient)
     mock.execute_command.return_value = {'result': 'ok'}
     mock.run_playbook.return_value = {'success': True}
     mock.get_variable_store.return_value = {'vars': {}}

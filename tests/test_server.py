@@ -203,37 +203,41 @@ class TestRun:
         monkeypatch.setattr(mcp.settings, 'port', 8000)
         monkeypatch.setattr(mcp.settings, 'transport_security', TransportSecuritySettings())
 
-    def test_ssl_verify_disabled_logs_warning(self, caplog):
-        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run'):
-            s.ssl_verify = False
-            s.mcp_transport = 'stdio'
-            with caplog.at_level(logging.WARNING):
-                run()
+    @pytest.fixture
+    def mocked_run(self):
+        """Patch settings and mcp.run() for a run() call; ssl_verify defaults to True (tested separately)."""
+        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
+            s.ssl_verify = True
+            yield s, mock_run
+
+    def test_ssl_verify_disabled_logs_warning(self, mocked_run, caplog):
+        s, _ = mocked_run
+        s.ssl_verify = False
+        s.mcp_transport = 'stdio'
+        with caplog.at_level(logging.WARNING):
+            run()
         assert 'SSL_VERIFY is disabled' in caplog.text
 
-    def test_ssl_verify_enabled_no_warning(self, caplog):
-        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run'):
-            s.ssl_verify = True
-            s.mcp_transport = 'stdio'
-            with caplog.at_level(logging.WARNING):
-                run()
+    def test_ssl_verify_enabled_no_warning(self, mocked_run, caplog):
+        s, _ = mocked_run
+        s.mcp_transport = 'stdio'
+        with caplog.at_level(logging.WARNING):
+            run()
         assert 'SSL_VERIFY is disabled' not in caplog.text
 
-    def test_stdio_transport_runs_stdio(self):
-        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
-            s.ssl_verify = True
-            s.mcp_transport = 'stdio'
-            run()
+    def test_stdio_transport_runs_stdio(self, mocked_run):
+        s, mock_run = mocked_run
+        s.mcp_transport = 'stdio'
+        run()
         mock_run.assert_called_once_with(transport='stdio')
 
-    def test_sse_localhost_keeps_dns_protection(self, caplog):
-        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
-            s.ssl_verify = True
-            s.mcp_transport = 'sse'
-            s.mcp_host = '127.0.0.1'
-            s.mcp_port = 9000
-            with caplog.at_level(logging.WARNING):
-                run()
+    def test_sse_localhost_keeps_dns_protection(self, mocked_run, caplog):
+        s, mock_run = mocked_run
+        s.mcp_transport = 'sse'
+        s.mcp_host = '127.0.0.1'
+        s.mcp_port = 9000
+        with caplog.at_level(logging.WARNING):
+            run()
         assert mcp.settings.host == '127.0.0.1'
         assert mcp.settings.port == 9000
         assert mcp.settings.transport_security is not None
@@ -241,14 +245,13 @@ class TestRun:
         assert 'DNS rebinding' not in caplog.text
         mock_run.assert_called_once_with(transport='sse')
 
-    def test_sse_non_localhost_disables_dns_protection(self, caplog):
-        with patch('attackmate_mcp_server.server.settings') as s, patch.object(mcp, 'run') as mock_run:
-            s.ssl_verify = True
-            s.mcp_transport = 'sse'
-            s.mcp_host = '0.0.0.0'
-            s.mcp_port = 8000
-            with caplog.at_level(logging.WARNING):
-                run()
+    def test_sse_non_localhost_disables_dns_protection(self, mocked_run, caplog):
+        s, mock_run = mocked_run
+        s.mcp_transport = 'sse'
+        s.mcp_host = '0.0.0.0'
+        s.mcp_port = 8000
+        with caplog.at_level(logging.WARNING):
+            run()
         assert mcp.settings.transport_security is None
         assert 'DNS rebinding' in caplog.text
         assert '0.0.0.0' in caplog.text

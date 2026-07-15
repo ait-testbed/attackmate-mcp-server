@@ -1,7 +1,6 @@
 """Tests for client.py - AttackMateAPIClient."""
 
 import asyncio
-from unittest.mock import MagicMock
 
 import httpx
 import pytest
@@ -84,8 +83,7 @@ class TestRequest:
     async def test_401_triggers_reauth_and_retries(self, authed_client):
         client, mock_http = authed_client
         mock_http.post.return_value = make_response(json_data={'access_token': 'new-token'})
-        resp_401 = MagicMock(spec=httpx.Response)
-        resp_401.status_code = 401
+        resp_401 = make_response(status_code=401)
         resp_ok = make_response(json_data={'retried': True})
         mock_http.request.side_effect = [resp_401, resp_ok]
 

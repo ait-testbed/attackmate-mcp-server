@@ -123,13 +123,12 @@ wheels = [
 
 [[package]]
 name = "attackmate"
-version = "1.0.1"
-source = { git = "https://github.com/ait-testbed/attackmate.git?rev=development#4e4ed486e3bdef4ba483bad34cae041782a70e60" }
+version = "1.0.2"
+source = { git = "https://github.com/ait-testbed/attackmate.git?rev=development#a6258439e0f817a5ff641c05ff43e6ea95bab71c" }
 dependencies = [
     { name = "argon2-cffi" },
     { name = "attackmate-client" },
     { name = "colorlog" },
-    { name = "dotenv" },
     { name = "fastapi" },
     { name = "httpx", extra = ["http2"] },
     { name = "paramiko" },
@@ -139,6 +138,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pymetasploit3" },
     { name = "pytest-mock" },
+    { name = "python-dotenv" },
     { name = "python-magic" },
     { name = "python-multipart" },
     { name = "sliver-py" },
@@ -150,11 +150,15 @@ dependencies = [
 [[package]]
 name = "attackmate-client"
 version = "0.1.2"
-source = { git = "https://github.com/ait-testbed/attackmate-client.git#4dd9940370048f593b1d4f2145a66859c505d88c" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
     { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fd/26/6a97b8ab9ef7ee32ed5e93255b8dbc3887de2e9f675c331ae5d554ee5dc7/attackmate_client-0.1.2.tar.gz", hash = "sha256:a259d64f9041e89e6734ea65ac0a1b4568b256dfc08e95fa70adbb83211644f3", size = 16106, upload-time = "2026-05-21T11:27:16.735Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/89/c9ae9e9c7484011d94491c7fad6d92637a35ffa381aa7ac35e2ba60a1e14/attackmate_client-0.1.2-py3-none-any.whl", hash = "sha256:6606d45b0510aeaa8058733b6f84ef19bd8d9346f63be498b12754fe033b834c", size = 14692, upload-time = "2026-05-21T11:27:15.135Z" },
 ]
 
 [[package]]
@@ -526,17 +530,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/60/8b/32f9823da46cde7df2087faa08cd98d01b908f8dcab982cdba9c84e85355/decorator-5.3.1.tar.gz", hash = "sha256:4cbcdd55a6efadb9dbea26b858f4fb3264567b52d69ca0d25b721b553f60ea82", size = 58084, upload-time = "2026-05-18T06:03:28.057Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/05/7f/798705f5296a58ca505d600456748d1be48078eac8a7050d8a98bc9edb89/decorator-5.3.1-py3-none-any.whl", hash = "sha256:f47fe6fdbd2edd623ecfe36875d37aba411624e2670dd395dddae1358689bb3c", size = 10365, upload-time = "2026-05-18T06:03:26.517Z" },
-]
-
-[[package]]
-name = "dotenv"
-version = "0.9.9"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "python-dotenv" },
-]
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/b7/545d2c10c1fc15e48653c91efde329a790f2eecfbbf2bd16003b5db2bab0/dotenv-0.9.9-py2.py3-none-any.whl", hash = "sha256:29cf74a087b31dafdb5a446b6d7e11cbce8ed2741540e2339c69fbef92c94ce9", size = 1892, upload-time = "2025-02-19T22:15:01.647Z" },
 ]
 
 [[package]]
@@ -1637,11 +1630,11 @@ wheels = [
 
 [[package]]
 name = "python-multipart"
-version = "0.0.30"
+version = "0.0.32"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4b/82/c8cd43a6e0719bf5a3b034f6726dd701f75829c08944c83d4b95d02ed0e8/python_multipart-0.0.30.tar.gz", hash = "sha256:0edfe0475c1f46ddd3ff7785a626f6118af32bdcf359bb21260367313bb32118", size = 46316, upload-time = "2026-05-31T19:24:55.198Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5b/42/55c32bb9b12693c092ad250a0e82edb5b31ddeda6eb772de5f308b3804ad/python_multipart-0.0.32.tar.gz", hash = "sha256:be54b7f3fa167bb83e4fcd936b887b708f4e57fe75911c02aebf53efaf8d938e", size = 46881, upload-time = "2026-06-04T16:18:58.647Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1c/fd/0318007beb234790993d3ec5afd051d1dbceb733e81e3afe2b981ece3f37/python_multipart-0.0.30-py3-none-any.whl", hash = "sha256:830964def8c90607ac5daa00514e3987815865713ade8d20febc9177ac0c3c5b", size = 29730, upload-time = "2026-05-31T19:24:53.814Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/04/e8135ebd1ad02c56ec633277529b2602ff99ff634be76cdba5744cf554fd/python_multipart-0.0.32-py3-none-any.whl", hash = "sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23", size = 30042, upload-time = "2026-06-04T16:18:57.319Z" },
 ]
 
 [[package]]

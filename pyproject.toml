@@ -22,7 +22,7 @@ dev = [
     "pytest-asyncio>=1.0",
     "ruff==0.15.21",
     "types-paramiko>=5.0.0.20260617",
-    "types-pyyaml>=6.0.12.20260518",
+    "types-pyyaml>=6.0.12.20260724",
     "types-requests>=2.33.0.20260712",
     "types-tabulate>=0.10.0.20260508",
 ]
